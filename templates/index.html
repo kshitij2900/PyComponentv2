@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Analyzer</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Python Code Analyzer</h1>
+    <form id="codeForm">
+        <textarea name="code" id="code" rows="10" cols="50" placeholder="Enter your Python code here..."></textarea><br>
+        <button type="submit">Analyze</button>
+    </form>
+    <h2>Result:</h2>
+    <pre id="result"></pre>
+
+    <script>
+    $(document).ready(function() {
+        $('#codeForm').on('submit', function(event) {
+            event.preventDefault();
+            var code = $('#code').val();
+            $.ajax({
+                url: '/analyze',
+                type: 'POST',
+                data: { code: code }, // Sending data as regular form data
+                success: function(data) {
+                    $('#result').text(JSON.stringify(data, null, 4));
+                },
+                error: function(xhr, status, error) {
+                    $('#result').text('Error: ' + xhr.responseText);
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
