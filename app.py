@@ -13,33 +13,43 @@ def parse_python_code(code):
 def find_parents(tree):
     parents = {}
     functions = {}
+    classes = {}
 
     class_name = ""
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
-            parents[node.name] = class_name
+            parents[node.name] = class_name if class_name else None
             functions[node.name] = ast.unparse(node)
         elif isinstance(node, ast.ClassDef):
             class_name = node.name
+            classes[class_name] = ast.unparse(node)
             for subnode in node.body:
                 if isinstance(subnode, ast.FunctionDef):
                     parents[subnode.name] = class_name
                     functions[subnode.name] = ast.unparse(subnode)
+            class_name = ""  # Reset after processing the class
 
-    return parents, functions
+    return parents, functions, classes
 
 
 def analyze_python_code(code):
     tree = parse_python_code(code)
-    parents, functions = find_parents(tree)
+    parents, functions, classes = find_parents(tree)
 
     output_data = {}
     for name, parent in parents.items():
         output_data[name] = {
-            "Type": 'Function' if parent else 'Class',
+            "Type": "Function" if parent else "Function",
             "Parent": parent,
             "Contents": functions[name]
+        }
+
+    for name in classes.keys():
+        output_data[name] = {
+            "Type": "Class",
+            "Parent": None,
+            "Contents": classes[name]
         }
 
     return json.dumps(output_data, indent=4)
@@ -61,7 +71,6 @@ def analyze():
         error_message = str(e)
         print("Error encountered:", error_message)  # Print the error message
         return jsonify({"code_accepted": code, "result": None, "error_log": error_message})
-
 
 
 if __name__ == '__main__':
