@@ -4,18 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Python Code Analyzer</title>
+    <link rel="stylesheet" href="../static/output.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <h1>Python Code Analyzer</h1>
-    <form id="codeForm">
-        <textarea name="code" id="code" rows="10" cols="50" placeholder="Enter your Python code here..."></textarea><br>
-        <button type="submit">Analyze</button>
-    </form>
-    <h2>Result:</h2>
-    <pre id="result"></pre>
-
+    <div class="flex text-center items-center p-6 gap-6 flex-col min-h-screen">
+        <!-- <h1>Python Code Analyzer</h1> -->
+        <form class="form-container flex gap-2 flex-col w-full max-w-md bg-slate-300/40 backdrop-blur-lg p-12 rounded-xl shadow-lg" id="codeForm">
+            <textarea class="textarea input-bordered bg-slate-300/40 border shadow w-full max-w-md" name="code" id="code" rows="10" cols="50" placeholder="Enter your Python code here..."></textarea><br>
+            <button class=" btn-primary mx-auto hover:underline" type="submit">Analyze</button>
+        </form>
+        <h2>Result:</h2>
+        <pre class="w-2/3 text-wrap" id="result">
+        </pre>
+        <div class="">
+        </div>
+        <ul class=" flex-col md:grid md:grid-cols-3  p-3" id="un">
+            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="type"></li>
+            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="content"></li>
+            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="parents"></li>
+            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="name"></li>
+        </ul>
+    </div>
     <script>
+        function toggleContent() {
+    const elements = document.querySelectorAll('#un');
+    elements.forEach(element => {
+        if (element.textContent.trim() !== '') {
+            element.classList.remove('hidden');
+        } else {
+            element.classList.add('hidden');
+        }
+    });
+    }
     $(document).ready(function() {
         $('#codeForm').on('submit', function(event) {
             event.preventDefault();
@@ -25,15 +46,28 @@
                 type: 'POST',
                 data: { code: code }, // Sending data as regular form data
                 success: function(data) {
-                    $('#result').text(JSON.stringify(data, null, 4));
+                    // $('#result').children.remove();
+                    let i= Object.keys(data.result).length;
+                    console.log(i);
+                    for(let j=1;j<=i;j++){
+                        if(data.hasOwnProperty(j)){
+                            $('#type').text(JSON.stringify(data.result[j].type, null, 4));
+                            $('#content').text(JSON.stringify(data.result[j].Content, null, 4));
+                            $('#parents').text(JSON.stringify(data.result[j].Parent, null, 4));
+                            $('#name').text(JSON.stringify(data.result[j].name, null, 4));
+                        }
+                    }
+                    $('#result').text(JSON.stringify(data.result, null, 4));
+                    
                 },
                 error: function(xhr, status, error) {
                     $('#result').text('Error: ' + xhr.responseText);
                 }
             });
         });
+        // toggleContent();
     });
+   
 </script>
-
 </body>
 </html>
