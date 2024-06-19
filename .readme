@@ -7,8 +7,7 @@ Steps to install and run the project on your localhost.
 
 Changes required 
 
-1. design and make seperate cards for every object of result
-   run the code 
+1. run the given sample code 
     import pandas as pd
     import torch
     from transformers import T5Tokenizer, T5ForConditionalGeneration
@@ -147,8 +146,4 @@ Changes required
     
     print("Model saved successfully!") 
     
-2.  make the card in the given format of sample card(the doc file     provided).
-3. iterate through every object of the "result" and return every object into seperate cards. the "type" should be bold and larger than the regular text, it will be used as the header of the card.
-4. the "content" object of the result will be used as rhe description of the card. 
-
-5. fill colours and make the ui simplistic. 
+2.  make the card in the given format of sample card(the doc file  provided) and implement drag and drop of each card on the playground element also implement functionality to connect cards with arrows. For reference use https://github.com/Soujash-123/PyComponentv2/blob/main/templates/index.html .
