@@ -6,68 +6,383 @@
     <title>Python Code Analyzer</title>
     <link rel="stylesheet" href="../static/output.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 </head>
-<body>
-    <div class="flex text-center items-center p-6 gap-6 flex-col min-h-screen">
+<body class="bg-gradient-to-tr from-fuchsia-700 to-pink-600">
+    <div class="flex text-center items-center p-6 gap-6 flex-row min-h-screen ">
         <!-- <h1>Python Code Analyzer</h1> -->
-        <form class="form-container flex gap-2 flex-col w-full max-w-md bg-slate-300/40 backdrop-blur-lg p-12 rounded-xl shadow-lg" id="codeForm">
-            <textarea class="textarea input-bordered bg-slate-300/40 border shadow w-full max-w-md" name="code" id="code" rows="10" cols="50" placeholder="Enter your Python code here..."></textarea><br>
-            <button class=" btn-primary mx-auto hover:underline" type="submit">Analyze</button>
-        </form>
-        <h2>Result:</h2>
-        <pre class="w-2/3 text-wrap" id="result">
-        </pre>
-        <div class="">
+        <div class="flex flex-col">
+
+            <h2>Result:</h2>
+        <div class="flex items-start p-2 w-[18vw] overflow-scroll h-[88vh] max-w-screen-xl border-zinc-300 rounded-lg border-dashed border-2 ">
+            <div class="w-[90vw] text-wrap p-1 grid grid-cols-1" id="result">
+            </div>
         </div>
-        <ul class=" flex-col md:grid md:grid-cols-3  p-3" id="un">
-            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="type"></li>
-            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="content"></li>
-            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="parents"></li>
-            <li class="p-3 m-2 rounded-md text-wrap border border-blue-300 hover:shadow-sm hover:shadow-blue-500 bg-blue-200" id="name"></li>
-        </ul>
+        </div>
+        <div class="w-[45vw] h-[95vh] max-w-screen-xl border-zinc-300 rounded-lg border-dashed border-2 " id="logicflow">
+            <canvas class="h-[95vh] w-[45vw]" id="playground"></canvas>
+        </div>
+        <form class="form-container flex  h-[90vh] flex-col w-[35vw] max-w-md bg-slate-300/40 backdrop-blur-lg p-2 rounded-xl shadow-lg " id="codeForm">
+            <textarea class="textarea placeholder:text-gray-800 h-[85vh]  bg-slate-300/40 rounded-lg shadow w-full max-w-md" name="code" id="code" rows="10" cols="50" placeholder="Enter your Python code here..."></textarea><br>
+            <div class="grid grid-cols-2">
+                <button class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-auto " type="submit">Analyze</button>
+                <button class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-auto " type="button" id="resetBtn">Reset</button>
+                <!-- <button class="p-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-auto " type="button" id="undoBtn" disabled>Undo</button> -->
+            </div>
+        </form>
     </div>
     <script>
-        function toggleContent() {
-    const elements = document.querySelectorAll('#un');
-    elements.forEach(element => {
-        if (element.textContent.trim() !== '') {
-            element.classList.remove('hidden');
-        } else {
-            element.classList.add('hidden');
-        }
-    });
-    }
-    $(document).ready(function() {
-        $('#codeForm').on('submit', function(event) {
-            event.preventDefault();
-            var code = $('#code').val();
-            $.ajax({
-                url: '/analyze',
-                type: 'POST',
-                data: { code: code }, // Sending data as regular form data
-                success: function(data) {
-                    // $('#result').children.remove();
-                    let i= Object.keys(data.result).length;
-                    console.log(i);
-                    for(let j=1;j<=i;j++){
-                        if(data.hasOwnProperty(j)){
-                            $('#type').text(JSON.stringify(data.result[j].type, null, 4));
-                            $('#content').text(JSON.stringify(data.result[j].Content, null, 4));
-                            $('#parents').text(JSON.stringify(data.result[j].Parent, null, 4));
-                            $('#name').text(JSON.stringify(data.result[j].name, null, 4));
-                        }
-                    }
-                    $('#result').text(JSON.stringify(data.result, null, 4));
-                    
-                },
-                error: function(xhr, status, error) {
-                    $('#result').text('Error: ' + xhr.responseText);
-                }
+    let previousCode = '';
+    let previousResult = '';
+    let isDrawingArrow = false;
+
+    $('#resetBtn').click(function() {
+                previousCode = $('#code').val(); // Store the current code
+                previousResult = $('#result').html(); // Store the current result
+                $('#code').val(''); // Clear the textarea
+                $('#result').html(''); // Clear the result container
+                $('#undoBtn').prop('disabled', false); // Enable the undo button
             });
+
+            // Undo button functionality
+            $('#undoBtn').click(function() {
+                $('#code').val(previousCode); // Restore the previous code
+                $('#result').html(previousResult); // Restore the previous result
+                $('#undoBtn').prop('disabled', true); // Disable the undo button
+            });
+
+
+        function createCard(content) {
+            console.log('Creating card with content:', content);
+
+            // Check if content is an object
+            if (typeof content !== 'object' || content === null) {
+                console.error('Invalid content data:', content);
+                return;
+            }
+
+            // Check if required properties exist
+            const requiredProperties = ['Type', 'name', 'Contents'];
+            const missingProperties = requiredProperties.filter(prop => !(prop in content));
+            if (missingProperties.length > 0) {
+                console.error(`Missing properties in content data: ${missingProperties.join(', ')}`);
+                return;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'bg-slate-300/40 p-6 m-2 relative rounded-xl hover:shadow-lg shadow cursor-pointer  ';
+            card.draggable = true;
+            card.id = `card-${content.name}`;
+
+            const type = document.createElement('h1');
+            type.textContent = `Type: ${content.Type}`;
+            type.className = 'text-base font-bold mb-2';
+            card.appendChild(type);
+
+            const name = document.createElement('h1');
+            name.textContent = `Name: ${content.name}`;
+            name.className = 'text-base font-bold mb-2 ';
+            card.appendChild(name);
+
+            const handlecontents = document.createElement('button');
+            handlecontents.textContent = `Content`;
+            handlecontents.className = 'h-[6vh] w-[8vw]   shadow rounded-md hover:shadow-xl border border-gray-700';
+            card.appendChild(handlecontents);
+
+
+            handlecontents.onclick = function() {
+                // Check if the contents are already displayed
+                let existingContents = card.querySelector('.text-wrap');
+                if (existingContents) {
+                    // If contents exist, remove them
+                    card.removeChild(existingContents);
+                } else {
+                    // If contents don't exist, create and append them
+                    const contents = document.createElement('pre');
+                    contents.className = 'text-wrap';
+                    contents.textContent = `Contents: \n${content.Contents}`;
+                    card.appendChild(contents);
+                }
+                // card.addEventListener('dragstart', handleDragStart);
+            };
+            return card;
+            }
+
+            function handleDragStart(e) {
+                e.dataTransfer.setData('text/plain', e.target.id);
+            }
+
+$(document).ready(function() {
+    $('#codeForm').on('submit', function(event) {
+        event.preventDefault();
+        var code = $('#code').val();
+        $.ajax({
+            url: '/analyze',
+            type: 'POST',
+            data: { code: code },
+            success: function(data) {
+                handleAnalysisResult(data.result);
+                
+            },
+            error: function(xhr, status, error) {
+                $('#result').text('Error: ' + xhr.responseText);
+            }
         });
-        // toggleContent();
     });
-   
+});
+function handleAnalysisResult(resultData) {
+    const container = document.getElementById('result');
+    container.innerHTML = ''; // Clear the previous result
+
+    if (!resultData || Object.keys(resultData).length === 0) {
+        console.warn('No analysis result data received.');
+        return;
+    }
+
+    for (const key in resultData) {
+        if (resultData.hasOwnProperty(key)) {
+            const content = resultData[key];
+            const card = createCard(content);
+            if (card) {
+                container.appendChild(card);
+            }
+        }
+    }
+}
+
+
+// function handleDragOver(e) {
+//     e.preventDefault();
+// }
+
+// function handleDrop(e) {
+//     e.preventDefault();
+//     const card = e.dataTransfer.getData('text/html');
+//     const rect = playground.getBoundingClientRect();
+//     const x = e.clientX - rect.left;
+//     const y = e.clientY - rect.top;
+//     const newCard = {
+//         x,
+//         y,
+//         width: 100, // Adjust the width and height as needed
+//         height: 80,
+//         element: new DOMParser().parseFromString(card, 'text/html').body.firstChild
+//     };
+//     cards.push(newCard);
+//     drawScene();
+// }
+    
+//     // Canvas playground functionality
+// let playground, ctx;
+// const cards = [];
+// const arrows = [];
+
+// function initCanvas() {
+//     const playgroundContainer = document.getElementById('logicflow');
+//     playground = document.getElementById('playground');
+//     playground.width = playgroundContainer.offsetWidth;
+//     playground.height = playgroundContainer.offsetHeight;
+//     ctx = playground.getContext('2d');
+//     playground.addEventListener('dragover', handleDragOver);
+//     playground.addEventListener('drop', handleDrop);
+
+//     const resultCards = document.querySelectorAll('#result > div');
+//     resultCards.forEach(card => {
+//         const rect = card.getBoundingClientRect();
+//         cards.push({
+//             x: rect.left,
+//             y: rect.top,
+//             width: rect.width,
+//             height: rect.height,
+//             element: card
+//         });
+//     });
+
+//     addCardDragHandlers();
+//     addArrowHandlers();
+//     drawScene();
+    
+// }
+
+// function handleDrop(e) {
+//     e.preventDefault();
+//     const cardId = e.dataTransfer.getData('text/plain');
+//     const droppedCard = document.getElementById(cardId);
+
+//     if (droppedCard) {
+//         const rect = playground.getBoundingClientRect();
+//         const x = e.clientX - rect.left;
+//         const y = e.clientY - rect.top;
+//         const newCard = {
+//             x,
+//             y,
+//             width: droppedCard.offsetWidth,
+//             height: droppedCard.offsetHeight,
+//             element: droppedCard.cloneNode(true)
+//         };
+//         cards.push(newCard);
+//         drawScene();
+//     }
+// }
+
+// function addCardDragHandlers() {
+//     let isDragging = false;
+//     let currentCard = null;
+
+//     playground.addEventListener('mousedown', handleMouseDown);
+//     playground.addEventListener('mousemove', handleMouseMove);
+//     playground.addEventListener('mouseup', handleMouseUp);
+
+//     function handleMouseDown(e) {
+//         const rect = playground.getBoundingClientRect();
+//         const x = e.clientX - rect.left;
+//         const y = e.clientY - rect.top;
+//         currentCard = cards.find(card => isPointInRect(x, y, card.x, card.y, card.width, card.height));
+//         if (currentCard) {
+//             isDragging = true;
+//         }
+//     }
+
+//     function handleMouseMove(e) {
+//         if (isDragging && currentCard) {
+//             const rect = playground.getBoundingClientRect();
+//             const x = e.clientX - rect.left;
+//             const y = e.clientY - rect.top;
+//             currentCard.x = x - currentCard.width / 2;
+//             currentCard.y = y - currentCard.height / 2;
+//             drawScene();
+//         }
+//     }
+
+//     function handleMouseUp(e) {
+//         if (isDragging) {
+//             isDragging = false;
+//             currentCard = null;
+//         }
+//         drawScene();
+//     }
+// }
+
+// function addArrowHandlers() {
+//     let arrowStartPoint = null;
+//     let arrowEndPoint = null;
+
+//     playground.addEventListener('mousedown', handleMouseDown);
+//     playground.addEventListener('mousemove', handleMouseMove);
+//     playground.addEventListener('mouseup', handleMouseUp);
+
+//     function handleMouseDown(e) {
+//         const rect = playground.getBoundingClientRect();
+//         const x = e.clientX - rect.left;
+//         const y = e.clientY - rect.top;
+//         isDrawingArrow = true;
+//         arrowStartPoint = { x, y };
+//     }
+
+//     function handleMouseMove(e) {
+//         if (isDrawingArrow) {
+//             const rect = playground.getBoundingClientRect();
+//             const x = e.clientX - rect.left;
+//             const y = e.clientY - rect.top;
+//             arrowEndPoint = { x, y };
+//             drawScene();
+//         }
+//     }
+
+//     function handleMouseUp(e) {
+//         if (isDrawingArrow) {
+//             isDrawingArrow = false;
+//             if (arrowStartPoint && arrowEndPoint) {
+//                 const arrowName = prompt('Enter arrow name:', `Arrow ${arrows.length + 1}`);
+//                 if (arrowName) {
+//                     arrows.push({ start: arrowStartPoint, end: arrowEndPoint, name: arrowName });
+//                 }
+//             }
+//             arrowStartPoint = null;
+//             arrowEndPoint = null;
+//         }
+//         drawScene();
+//     }
+// }
+
+// function isPointInRect(x, y, rectX, rectY, rectWidth, rectHeight) {
+//     return (
+//         x >= rectX &&
+//         x <= rectX + rectWidth &&
+//         y >= rectY &&
+//         y <= rectY + rectHeight
+//     );
+// }
+
+// function drawScene() {
+//     ctx.clearRect(0, 0, playground.width, playground.height);
+
+//     // Draw cards
+// //      cards.forEach(card => {
+// //         if (card.element instanceof Node && card.element !== null) {
+// //     const cardImage = new Image();
+// //     cardImage.src = 'data:image/svg+xml,' + encodeURIComponent(new XMLSerializer().serializeToString(card.element));
+// //     ctx.drawImage(cardImage, card.x, card.y);
+// // } else if (card.element === null) {
+// //     // Handle the case when card.element is null
+// //     console.warn('Card element is null');
+// //     // You can add additional logic here, such as drawing a placeholder or skipping the rendering
+// // } else {
+// //     // Handle the case when card.element is not a valid DOM Node
+// //     console.warn('Invalid card element:', card.element);
+// // }
+// //     });
+//         cards.forEach(card => {
+//                 if (card.element) {
+//                     const cardImage = new Image();
+//                     cardImage.src = 'data:image/svg+xml,' + encodeURIComponent(new XMLSerializer().serializeToString(card.element));
+//                     ctx.drawImage(cardImage, card.x, card.y);
+//                 }
+//             });
+
+//     // Draw arrows
+//     ctx.strokeStyle = 'black';
+//     ctx.lineWidth = 2;
+//     arrows.forEach(arrow => {
+//         ctx.beginPath();
+//         ctx.moveTo(arrow.start.x, arrow.start.y);
+//         ctx.lineTo(arrow.end.x, arrow.end.y);
+//         ctx.stroke();
+
+//         // Draw arrow head
+//         const dx = arrow.end.x - arrow.start.x;
+//         const dy = arrow.end.y - arrow.start.y;
+//         const angle = Math.atan2(dy, dx);
+//         const arrowHeadLength = 10;
+//         const arrowHeadAngle = Math.PI / 6;
+//         ctx.moveTo(arrow.end.x, arrow.end.y);
+//         ctx.lineTo(
+//             arrow.end.x - arrowHeadLength * Math.cos(angle - arrowHeadAngle),
+//             arrow.end.y - arrowHeadLength * Math.sin(angle - arrowHeadAngle)
+//         );
+//         ctx.moveTo(arrow.end.x, arrow.end.y);
+//         ctx.lineTo(
+//             arrow.end.x - arrowHeadLength * Math.cos(angle + arrowHeadAngle),
+//             arrow.end.y - arrowHeadLength * Math.sin(angle + arrowHeadAngle)
+//         );
+//         ctx.stroke();
+
+//         // Draw arrow name
+//         ctx.font = '14px Arial';
+//         ctx.fillStyle = 'black';
+//         ctx.fillText(arrow.name, (arrow.start.x + arrow.end.x) / 2, (arrow.start.y + arrow.end.y) / 2);
+//     });
+
+//     // Draw temporary arrow while drawing
+//     if (isDrawingArrow && arrowStartPoint && arrowEndPoint) {
+//         ctx.beginPath();
+//         ctx.moveTo(arrowStartPoint.x, arrowStartPoint.y);
+//         ctx.lineTo(arrowEndPoint.x, arrowEndPoint.y);
+//         ctx.stroke();
+//     }
+// }
+
+// initCanvas();
 </script>
 </body>
 </html>
