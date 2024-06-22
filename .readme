@@ -5,9 +5,9 @@ Steps to install and run the project on your localhost.
 3. then run the command 'python app.py' in one terminal. 
 4. open a seperate terminal and run the command 'npx tailwindcss -i ./static/main.css -o ./static/output.css --watch'. 
 
-Changes required 
 
-1. run the given sample code 
+1. run the given sample code on the web page:
+
     import pandas as pd
     import torch
     from transformers import T5Tokenizer, T5ForConditionalGeneration
@@ -146,4 +146,4 @@ Changes required
     
     print("Model saved successfully!") 
     
-2.  make the card in the given format of sample card(the doc file  provided) and implement drag and drop of each card on the playground element also implement functionality to connect cards with arrows. For reference use https://github.com/Soujash-123/PyComponentv2/blob/main/templates/index.html .
+2.  Card drag and drop functionality has been implemented. Might need more testing to find bugs.
