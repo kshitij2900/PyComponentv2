@@ -1,5 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Analyzer</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="../static/output.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leader-line/1.0.7/leader-line.min.js"></script>
+    <style>
+        .box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 150px;
+            height: 150px;
+            overflow: hidden;
+            position: absolute;
+        }
+
+        .function {
+            background-color: #d4edda;
+            /* light green */
+        }
+
+        .class {
+            background-color: #f8d7da;
+            /* light red */
+        }
+
+        .contents {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 100px;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
+
+        /* #result {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+        } */
+        .ellipse {
+            width: 100px;
+            height: 50px;
+            line-height: 50px;
+            text-align: center;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+        }
+
+        .start {
+            background-color: #ffcc00;
+            /* yellow */
+            color: #0033cc;
+            /* blue */
+        }
+
+        .end {
+            background-color: #00cc99;
+            /* green */
+            color: #cc0033;
+            /* red */
+        }
+
+        .leader-line {
+            z-index: -1;
+            /* Ensure arrows are behind boxes */
+        }
+
+        .highlighted {
+            stroke: red !important;
+            /* Example: Highlighting color */
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-tr from-fuchsia-700 to-pink-600">
+    <!-- <h1>Python Code Analyzer</h1>
+    <form id="codeForm">
+        
+        <button type="button" id="addCodeInput">Add More Code</button><br><br>
+        <button type="submit">Analyze</button>
+        <button type="button" id="resetBtn">Reset</button>
+    </form> -->
+    <!-- <h2>Result:</h2>
+    <div id="result"></div> -->
+    <div class="flex text-center items-center p-6 gap-3 flex-row min-h-screen ">
+        <div class=" h-[90vh] flex flex-col">
+            <div class=" p-2 w-[68vw] h-[90vh] border-zinc-300 rounded-lg border-dashed border-2 ">
+                <div id="result">
+                </div>
+            </div>
+        </div>
+        <form
+            class="form-container flex  h-[90vh] flex-col w-[35vw] max-w-md bg-slate-300/40 backdrop-blur-lg p-2  rounded-xl shadow-lg "
+            id="codeForm">
+            <div id="codeInputs" class="overflow-scroll">
+                <textarea
+                    class="textarea codeInput placeholder:text-gray-800 h-[85vh]  bg-slate-300/40 rounded-lg shadow w-full max-w-md"
+                    name="code" id="code" rows="10" cols="50"
+                    placeholder="Enter your Python code here..."></textarea><br>
+            </div>
+            <div class="grid grid-cols-4">
+                <button
+                    class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
+                    type="submit">Analyze</button>
+                <button
+                    class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
+                    type="button" id="resetBtn">Reset</button>
+                <button type="button" id="downloadBtn"
+                    class="px-1 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] ">Download</button>
+                <button type="button"
+                    class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
+                    id="addCodeInput">Add</button>
+            </div>
+        </form>
+    </div>
+    <script>
+        let connections = [];
+
+        $(document).ready(function () {
+            var startElement = null; // Track the starting element for drawing lines
+            var lines = []; // Array to keep track of drawn lines
+
+            $('#addCodeInput').click(function () {
+                var newTextarea = $('<textarea class="textarea placeholder:text-gray-800 h-[85vh]  bg-slate-300/40 rounded-lg shadow w-full max-w-md" rows="10" cols="50" placeholder="Enter your Python code here..."></textarea><br>');
+                $('#codeInputs').append(newTextarea);
+            });
+
+            $('#codeForm').on('submit', function (event) {
+                event.preventDefault();
+
+                // Gather all code inputs
+                var codeInputs = $('.codeInput');
+                var codeData = [];
+                codeInputs.each(function () {
+                    var code = $(this).val().trim();
+                    if (code) {
+                        codeData.push(code);
+                    }
+                });
+                console.log("Submitting code:", codeData);
+
+                // Clear previous results and lines
+                $('#result').empty();
+                lines.forEach(function (lineObj) {
+                    lineObj.line.remove();
+                });
+                lines = [];
+
+                $.post('/analyze', { code: codeData }, function (data) {
+                    console.log("Received data:", data);
+                    var positions = [];
+                    var margin = 10;
+
+                    // Add Start and End ellipses
+                    addEllipse('Start', 'start', positions, margin, $('#result').width(), $('#result').height());
+                    addEllipse('End', 'end', positions, margin, $('#result').width(), $('#result').height());
+
+                    if (data.result) {
+                        $.each(data.result, function (key, item) {
+
+                            console.log("Creating box for:", key, item);
+                            var box = $('<div class="box" draggable="true"></div>');
+                            box.attr('id', key); // Assign an ID to the box
+                            if (item.Type === 'Function') {
+                                box.addClass('function');
+                            } else if (item.Type === 'Class') {
+                                box.addClass('class');
+                            }
+                            box.append('<strong>' + item.Type + ':</strong> ' + item.name);
+                            var contents = $('<div class="contents"></div>').text(item.Contents);
+                            box.append(contents);
+                            box.dblclick(function () { // Toggle contents on double click
+                                contents.toggle();
+                            });
+
+                            // Calculate initial position to avoid overlap
+                            var position = calculatePosition(positions, margin, box.width(), box.height(), $('#result').width(), $('#result').height());
+                            positions.push(position);
+                            box.css({ left: position.left, top: position.top });
+
+                            $('#result').append(box);
+
+                            // Add event listeners for drag-and-drop
+                            box.on('dragstart', function (e) {
+                                e.originalEvent.dataTransfer.setData('text/plain', key);
+                                $(this).addClass('dragging');
+                                e.originalEvent.dataTransfer.setDragImage(new Image(), 0, 0); // Hide the default drag image
+                            });
+
+                            box.on('dragend', function (e) {
+                                $(this).removeClass('dragging');
+                                var left = e.originalEvent.pageX - $('#result').offset().left - $(this).width() / 2;
+                                var top = e.originalEvent.pageY - $('#result').offset().top - $(this).height() / 2;
+                                $(this).css({ left: left, top: top });
+                                updateLines(this); // Update lines connected to this element
+                            });
+
+                            box.on('click', function () {
+                                if (startElement) {
+                                    // Draw a line from startElement to this element
+                                    var line = new LeaderLine(startElement.get(0), this);
+                                    lines.push({ line: line, start: startElement.get(0), end: this });
+                                    startElement = null; // Reset startElement
+                                } else {
+                                    startElement = $(this); // Set startElement
+                                }
+                            });
+
+                            box.attr('tabindex', 0); // Make the box focusable to receive keydown events
+                        });
+
+                        // Draw initial lines based on relationships
+                        drawInitialLines(data.result);
+                    } else if (data.error_log) {
+                        console.log("Error:", data.error_log);
+                        $('#result').text('Error: ' + data.error_log);
+                    }
+                }).fail(function (xhr) {
+                    console.log("AJAX request failed:", xhr.responseText);
+                    $('#result').text('Error: ' + xhr.responseText);
+                });
+            });
+
+            // Function to draw initial lines based on relationships
+            function drawInitialLines(result) {
+                $.each(result, function (key, item) {
+                    // Example: Connect parent-child relationships
+                    // if (item.Parent) {
+                    //     var parentBox = $('#' + item.Parent);
+                    //     var childBox = $('#' + key);
+                    //     var line = new LeaderLine(parentBox.get(0), childBox.get(0));
+                    //     lines.push({line: line, start: parentBox.get(0), end: childBox.get(0)});
+                    // }
+                });
+            }
+
+            // Function to add ellipses
+            function addEllipse(text, className, positions, margin, containerWidth, containerHeight) {
+                var ellipse = $('<div class="ellipse ' + className + '" draggable="true">' + text + '</div>');
+
+                // Calculate initial position to avoid overlap
+                var position = calculatePosition(positions, margin, ellipse.width(), ellipse.height(), containerWidth, containerHeight);
+                positions.push(position);
+                ellipse.css({ left: position.left, top: position.top });
+
+                $('#result').append(ellipse);
+
+                // Add event listeners for drag-and-drop
+                ellipse.on('dragstart', function (e) {
+                    e.originalEvent.dataTransfer.setData('text/plain', text);
+                    $(this).addClass('dragging');
+                    e.originalEvent.dataTransfer.setDragImage(new Image(), 0, 0); // Hide the default drag image
+                });
+
+                ellipse.on('dragend', function (e) {
+                    $(this).removeClass('dragging');
+                    var left = e.originalEvent.pageX - $('#result').offset().left - $(this).width() / 2;
+                    var top = e.originalEvent.pageY - $('#result').offset().top - $(this).height() / 2;
+                    $(this).css({ left: left, top: top });
+                    updateLines(this); // Update lines connected to this element
+                });
+
+                ellipse.on('click', function () {
+                    if (startElement) {
+                        // Draw a line from startElement to this element
+                        var line = new LeaderLine(startElement.get(0), this);
+                        lines.push({ line: line, start: startElement.get(0), end: this });
+                        startElement = null; // Reset startElement
+                    } else {
+                        startElement = $(this); // Set startElement
+                    }
+                });
+
+                ellipse.attr('tabindex', 0); // Make the ellipse focusable to receive keydown events
+            }
+
+            // Function to calculate initial position to avoid overlap
+            function calculatePosition(positions, margin, width, height, containerWidth, containerHeight) {
+                var left, top;
+                var overlap;
+                do {
+                    overlap = false;
+                    left = Math.floor(Math.random() * (containerWidth - width));
+                    top = Math.floor(Math.random() * (containerHeight - height));
+                    for (var i = 0; i < positions.length; i++) {
+                        var pos = positions[i];
+                        if (left < pos.left + width + margin &&
+                            left + width + margin > pos.left &&
+                            top < pos.top + height + margin &&
+                            top + height + margin > pos.top) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                } while (overlap);
+                return { left: left, top: top };
+            }
+
+            // Update lines connected to an element
+            function updateLines(element) {
+                lines.forEach(function (lineObj) {
+                    if (lineObj.start === element || lineObj.end === element) {
+                        lineObj.line.position();
+                    }
+                });
+            }
+            // Handle reset button click
+            $('#resetBtn').click(function () {
+                // Clear the result div
+                $('#result').empty();
+
+                // Clear all text areas
+                $('.codeInput').val('');
+
+                // Remove all leader lines
+                lines.forEach(function (lineObj) {
+                    lineObj.line.remove();
+                });
+                lines = [];
+
+                // Reset the startElement
+                startElement = null;
+
+                // Clear the connections array
+                connections = [];
+
+                // Remove all textareas except the first one
+                $('#codeInputs textarea:not(:first)').remove();
+            });
+
+            // Handle keydown events for the document to detect delete key
+            $(document).on('keydown', function (e) {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    var focusedElement = $(':focus');
+                    if (focusedElement.length) {
+                        focusedElement.remove();
+                        // Remove lines connected to this element
+                        lines = lines.filter(function (lineObj) {
+                            if (lineObj.start === focusedElement.get(0) || lineObj.end === focusedElement.get(0)) {
+                                lineObj.line.remove();
+                                return false;
+                            }
+                            return true;
+                        });
+                    }
+                }
+            });
+            // Function to generate connected code
+            function generateConnectedCode() {
+                let connectedCode = '';
+                let visited = new Set();
+
+                function dfs(element) {
+                    if (visited.has(element)) return;
+                    visited.add(element);
+
+                    if ($(element).hasClass('box')) {
+                        connectedCode += $(element).find('.contents').text() + '\n\n';
+                    }
+
+                    lines.forEach(function (lineObj) {
+                        if (lineObj.start === element) {
+                            dfs(lineObj.end);
+                        }
+                    });
+                }
+
+                // Start DFS from the 'Start' ellipse
+                let startElement = $('.ellipse.start').get(0);
+                dfs(startElement);
+
+                return connectedCode.trim();
+            }
+
+            // Handle download button click
+            $('#downloadBtn').click(function () {
+                let connectedCode = generateConnectedCode();
+                let blob = new Blob([connectedCode], { type: 'text/plain' });
+                let url = URL.createObjectURL(blob);
+                let a = document.createElement('a');
+                a.href = url;
+                a.download = 'connected_code.py';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        });
+    </script>
+</body>
+
+</html>
+
+
+
+<!-- my code  -->
+<!-- <!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -167,4 +580,257 @@
         }
     </script>
 </body>
-</html>
+</html> -->
+
+
+<!-- code sb1 -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Analyzer</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leader-line/1.0.7/leader-line.min.js"></script>
+    <style>
+        .box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 150px;
+            height: 150px;
+            overflow: hidden;
+            position: absolute;
+        }
+        .function {
+            background-color: #d4edda; /* light green */
+        }
+        .class {
+            background-color: #f8d7da; /* light red */
+        }
+        .contents {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 100px;
+        }
+        .dragging {
+            opacity: 0.5;
+        }
+        #result {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+        }
+        .ellipse {
+            width: 100px;
+            height: 50px;
+            line-height: 50px;
+            text-align: center;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+        }
+        .start {
+            background-color: #ffcc00; /* yellow */
+            color: #0033cc; /* blue */
+        }
+        .end {
+            background-color: #00cc99; /* green */
+            color: #cc0033; /* red */
+        }
+    </style>
+</head>
+<body>
+    <h1>Python Code Analyzer</h1>
+    <form id="codeForm">
+        <textarea id="code" rows="10" cols="50" placeholder="Enter your Python code here..."></textarea><br>
+        <button type="submit">Analyze</button>
+    </form>
+    <h2>Result:</h2>
+    <div id="result"></div>
+
+    <script>
+        $(document).ready(function() {
+            var startElement = null; // Track the starting element for drawing lines
+            var lines = []; // Array to keep track of drawn lines
+
+            $('#codeForm').on('submit', function(event) {
+                event.preventDefault();
+                var code = $('#code').val();
+
+                // Clear previous results and lines
+                $('#result').empty();
+                lines.forEach(function(lineObj) {
+                    lineObj.line.remove();
+                });
+                lines = [];
+
+                $.post('/analyze', { code: code }, function(data) {
+                    // Variables to track positions
+                    var positions = [];
+                    var margin = 10; // Margin between boxes
+
+                    // Add Start and End ellipses
+                    addEllipse('Start', 'start', positions, margin, $('#result').width(), $('#result').height());
+                    addEllipse('End', 'end', positions, margin, $('#result').width(), $('#result').height());
+
+                    if (data.result) {
+                        $.each(data.result, function(key, item) {
+                            var box = $('<div class="box" draggable="true"></div>');
+                            box.attr('id', key); // Assign an ID to the box
+                            if (item.Type === 'Function') {
+                                box.addClass('function');
+                            } else if (item.Type === 'Class') {
+                                box.addClass('class');
+                            }
+                            box.append('<strong>' + item.Type + ':</strong> ' + item.name);
+                            var contents = $('<div class="contents"></div>').text(item.Contents);
+                            box.append(contents);
+                            box.dblclick(function() { // Toggle contents on double click
+                                contents.toggle();
+                            });
+
+                            // Calculate initial position to avoid overlap
+                            var position = calculatePosition(positions, margin, box.width(), box.height(), $('#result').width(), $('#result').height());
+                            positions.push(position);
+                            box.css({ left: position.left, top: position.top });
+
+                            $('#result').append(box);
+
+                            // Add event listeners for drag-and-drop
+                            box.on('dragstart', function(e) {
+                                e.originalEvent.dataTransfer.setData('text/plain', key);
+                                $(this).addClass('dragging');
+                                e.originalEvent.dataTransfer.setDragImage(new Image(), 0, 0); // Hide the default drag image
+                            });
+
+                            box.on('dragend', function(e) {
+                                $(this).removeClass('dragging');
+                                var left = e.originalEvent.pageX - $('#result').offset().left - $(this).width() / 2;
+                                var top = e.originalEvent.pageY - $('#result').offset().top - $(this).height() / 2;
+                                $(this).css({ left: left, top: top });
+                                updateLines(this); // Update lines connected to this element
+                            });
+
+                            box.on('click', function() {
+                                if (startElement) {
+                                    // Draw a line from startElement to this element
+                                    var line = new LeaderLine(startElement.get(0), this);
+                                    lines.push({line: line, start: startElement.get(0), end: this});
+                                    startElement = null; // Reset startElement
+                                } else {
+                                    startElement = $(this); // Set startElement
+                                }
+                            });
+
+                            box.attr('tabindex', 0); // Make the box focusable to receive keydown events
+                        });
+                    } else if (data.error_log) {
+                        $('#result').text('Error: ' + data.error_log);
+                    }
+                }).fail(function(xhr) {
+                    $('#result').text('Error: ' + xhr.responseText);
+                });
+            });
+
+            // Function to add ellipses
+            function addEllipse(text, className, positions, margin, containerWidth, containerHeight) {
+                var ellipse = $('<div class="ellipse ' + className + '" draggable="true">' + text + '</div>');
+
+                // Calculate initial position to avoid overlap
+                var position = calculatePosition(positions, margin, ellipse.width(), ellipse.height(), containerWidth, containerHeight);
+                positions.push(position);
+                ellipse.css({ left: position.left, top: position.top });
+
+                $('#result').append(ellipse);
+
+                // Add event listeners for drag-and-drop
+                ellipse.on('dragstart', function(e) {
+                    e.originalEvent.dataTransfer.setData('text/plain', text);
+                    $(this).addClass('dragging');
+                    e.originalEvent.dataTransfer.setDragImage(new Image(), 0, 0); // Hide the default drag image
+                });
+
+                ellipse.on('dragend', function(e) {
+                    $(this).removeClass('dragging');
+                    var left = e.originalEvent.pageX - $('#result').offset().left - $(this).width() / 2;
+                    var top = e.originalEvent.pageY - $('#result').offset().top - $(this).height() / 2;
+                    $(this).css({ left: left, top: top });
+                    updateLines(this); // Update lines connected to this element
+                });
+
+                ellipse.on('click', function() {
+                    if (startElement) {
+                        // Draw a line from startElement to this element
+                        var line = new LeaderLine(startElement.get(0), this);
+                        lines.push({line: line, start: startElement.get(0), end: this});
+                        startElement = null; // Reset startElement
+                    } else {
+                        startElement = $(this); // Set startElement
+                    }
+                });
+
+                ellipse.attr('tabindex', 0); // Make the ellipse focusable to receive keydown events
+            }
+
+            // Function to calculate initial position to avoid overlap
+            function calculatePosition(positions, margin, width, height, containerWidth, containerHeight) {
+                var left, top;
+                var overlap;
+                do {
+                    overlap = false;
+                    left = Math.floor(Math.random() * (containerWidth - width));
+                    top = Math.floor(Math.random() * (containerHeight - height));
+                    for (var i = 0; i < positions.length; i++) {
+                        var pos = positions[i];
+                        if (left < pos.left + width + margin &&
+                            left + width + margin > pos.left &&
+                            top < pos.top + height + margin &&
+                            top + height + margin > pos.top) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                } while (overlap);
+                return { left: left, top: top };
+            }
+
+            // Update lines connected to an element
+            function updateLines(element) {
+                lines.forEach(function(lineObj) {
+                    if (lineObj.start === element || lineObj.end === element) {
+                        lineObj.line.position();
+                    }
+                });
+            }
+
+            // Handle keydown events for the document to detect delete key
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    var focusedElement = $(':focus');
+                    if (focusedElement.length) {
+                        focusedElement.remove();
+                        // Remove lines connected to this element
+                        lines = lines.filter(function(lineObj) {
+                            if (lineObj.start === focusedElement.get(0) || lineObj.end === focusedElement.get(0)) {
+                                lineObj.line.remove();
+                                return false;
+                            }
+                            return true;
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html> -->

@@ -588,6 +588,10 @@ video {
   }
 }
 
+.absolute {
+  position: absolute;
+}
+
 .relative {
   position: relative;
 }
@@ -599,6 +603,26 @@ video {
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
+}
+
+.mx-\[\] {
+  margin-left: ;
+  margin-right: ;
+}
+
+.mx-\[1\] {
+  margin-left: 1;
+  margin-right: 1;
+}
+
+.mx-\[0\.4\] {
+  margin-left: 0.4;
+  margin-right: 0.4;
+}
+
+.mx-\[0\.4vw\] {
+  margin-left: 0.4vw;
+  margin-right: 0.4vw;
 }
 
 .mb-2 {
@@ -615,6 +639,10 @@ video {
 
 .contents {
   display: contents;
+}
+
+.hidden {
+  display: none;
 }
 
 .h-\[6vh\] {
@@ -635,6 +663,34 @@ video {
 
 .h-\[95vh\] {
   height: 95vh;
+}
+
+.h-\[5vh\] {
+  height: 5vh;
+}
+
+.h-\[75vh\] {
+  height: 75vh;
+}
+
+.h-\[45vh\] {
+  height: 45vh;
+}
+
+.h-\[65vh\] {
+  height: 65vh;
+}
+
+.h-screen {
+  height: 100vh;
+}
+
+.h-\[\] {
+  height: ;
+}
+
+.h-\[90\] {
+  height: 90;
 }
 
 .min-h-screen {
@@ -665,6 +721,30 @@ video {
   width: 100%;
 }
 
+.w-\[168vw\] {
+  width: 168vw;
+}
+
+.w-\[68vw\] {
+  width: 68vw;
+}
+
+.w-\[78vw\] {
+  width: 78vw;
+}
+
+.w-\[65vw\] {
+  width: 65vw;
+}
+
+.w-\[6vw\] {
+  width: 6vw;
+}
+
+.w-\[62vw\] {
+  width: 62vw;
+}
+
 .max-w-md {
   max-width: 28rem;
 }
@@ -685,12 +765,24 @@ video {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .flex-row {
   flex-direction: row;
 }
 
 .flex-col {
   flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
 }
 
 .items-start {
@@ -705,8 +797,16 @@ video {
   gap: 1.5rem;
 }
 
+.gap-3 {
+  gap: 0.75rem;
+}
+
 .overflow-scroll {
   overflow: scroll;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
 }
 
 .text-wrap {
@@ -791,6 +891,20 @@ video {
   padding-bottom: 0.5rem;
 }
 
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.pb-2 {
+  padding-bottom: 0.5rem;
+}
+
 .text-center {
   text-align: center;
 }
@@ -798,6 +912,11 @@ video {
 .text-base {
   font-size: 1rem;
   line-height: 1.5rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .font-bold {
