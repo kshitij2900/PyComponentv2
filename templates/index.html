@@ -89,36 +89,46 @@
 </head>
 
 <body class="bg-gradient-to-tr from-fuchsia-700 to-pink-600">
-    <div class="flex text-center items-center p-6 gap-3 flex-row min-h-screen ">
-        <div class=" h-[90vh] flex flex-col">
-            <div class=" p-2 w-[68vw] h-[90vh] border-zinc-300 rounded-lg border-dashed border-2 ">
-                <div id="result">
+    <div class="flex flex-col">
+        <div class="w-[95vw] px-[45vw] py-[2vh] font-serif text-2xl text-white border-zinc-300 rounded-lg border-dashed border-2 mx-[2vw] my-[1vh]  items-center justify-center">
+            PyComponent
+        </div>
+
+        <div class="flex text-center items-center px-6 gap-3  flex-row min-h-screen ">
+            <div class=" h-[90vh] flex flex-col">
+                <div class=" p-2 w-[68vw] h-[90vh] border-zinc-300 rounded-lg border-dashed border-2 ">
+                    <div id="result">
+                    </div>
                 </div>
             </div>
+            <form
+                class="form-container flex  h-[90vh] flex-col w-[35vw] max-w-md bg-slate-300/40 backdrop-blur-lg p-2  rounded-xl shadow-lg "
+                id="codeForm">
+                <div id="codeInputs" class="overflow-scroll">
+                    <textarea
+                        class="textarea codeInput placeholder:text-gray-800 h-[85vh]  bg-slate-300/40 rounded-lg shadow w-full max-w-md"
+                        name="code" id="code" rows="10" cols="50"
+                        placeholder="Enter your Python code here..."></textarea><br>
+                </div>
+                <div class="grid grid-cols-4">
+                    <button
+                        class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
+                        type="submit">Analyze</button>
+                    <button
+                        class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
+                        type="button" id="resetBtn">Reset</button>
+                    <button type="button" id="downloadBtn"
+                        class="px-1 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] ">Download</button>
+                    <button type="button"
+                        class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
+                        id="addCodeInput">Add</button>
+                </div>
+            </form>
         </div>
-        <form
-            class="form-container flex  h-[90vh] flex-col w-[35vw] max-w-md bg-slate-300/40 backdrop-blur-lg p-2  rounded-xl shadow-lg "
-            id="codeForm">
-            <div id="codeInputs" class="overflow-scroll">
-                <textarea
-                    class="textarea codeInput placeholder:text-gray-800 h-[85vh]  bg-slate-300/40 rounded-lg shadow w-full max-w-md"
-                    name="code" id="code" rows="10" cols="50"
-                    placeholder="Enter your Python code here..."></textarea><br>
-            </div>
-            <div class="grid grid-cols-4">
-                <button
-                    class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
-                    type="submit">Analyze</button>
-                <button
-                    class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
-                    type="button" id="resetBtn">Reset</button>
-                <button type="button" id="downloadBtn"
-                    class="px-1 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] ">Download</button>
-                <button type="button"
-                    class="px-5 py-2 rounded-md hover:bg-gradient-to-l bg-gradient-to-r from text-white  mx-[0.4vw] "
-                    id="addCodeInput">Add</button>
-            </div>
-        </form>
+        <hr class=" border-zinc-300  border-b-2 border-t-0 border-dashed ">
+        <footer class="mx-[1vw] text-lg py-2 text-white font-serif">
+            <p>&copy; 2024 SyntalixAi.in . All rights reserved.</p>
+        </footer>
     </div>
     <script>
         let connections = [];
@@ -144,7 +154,7 @@
                         codeData.push(code);
                     }
                 });
-              //  console.log("Submitting code:", codeData);
+                //  console.log("Submitting code:", codeData);
 
                 // Clear previous results and lines
                 $('#result').empty();
@@ -154,7 +164,7 @@
                 lines = [];
 
                 $.post('/analyze', { code: codeData }, function (data) {
-                   // console.log("Received data:", data);
+                    // console.log("Received data:", data);
                     var positions = [];
                     var margin = 10;
 
@@ -223,7 +233,7 @@
                         $('#result').text('Error: ' + data.error_log);
                     }
                 }).fail(function (xhr) {
-                //console.log("AJAX request failed:", xhr.responseText);
+                    //console.log("AJAX request failed:", xhr.responseText);
                     $('#result').text('Error: ' + xhr.responseText);
                 });
             });
