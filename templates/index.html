@@ -89,15 +89,6 @@
 </head>
 
 <body class="bg-gradient-to-tr from-fuchsia-700 to-pink-600">
-    <!-- <h1>Python Code Analyzer</h1>
-    <form id="codeForm">
-        
-        <button type="button" id="addCodeInput">Add More Code</button><br><br>
-        <button type="submit">Analyze</button>
-        <button type="button" id="resetBtn">Reset</button>
-    </form> -->
-    <!-- <h2>Result:</h2>
-    <div id="result"></div> -->
     <div class="flex text-center items-center p-6 gap-3 flex-row min-h-screen ">
         <div class=" h-[90vh] flex flex-col">
             <div class=" p-2 w-[68vw] h-[90vh] border-zinc-300 rounded-lg border-dashed border-2 ">
@@ -153,7 +144,7 @@
                         codeData.push(code);
                     }
                 });
-                console.log("Submitting code:", codeData);
+              //  console.log("Submitting code:", codeData);
 
                 // Clear previous results and lines
                 $('#result').empty();
@@ -163,7 +154,7 @@
                 lines = [];
 
                 $.post('/analyze', { code: codeData }, function (data) {
-                    console.log("Received data:", data);
+                   // console.log("Received data:", data);
                     var positions = [];
                     var margin = 10;
 
@@ -174,7 +165,7 @@
                     if (data.result) {
                         $.each(data.result, function (key, item) {
 
-                            console.log("Creating box for:", key, item);
+                            //console.log("Creating box for:", key, item);
                             var box = $('<div class="box" draggable="true"></div>');
                             box.attr('id', key); // Assign an ID to the box
                             if (item.Type === 'Function') {
@@ -228,11 +219,11 @@
                         // Draw initial lines based on relationships
                         drawInitialLines(data.result);
                     } else if (data.error_log) {
-                        console.log("Error:", data.error_log);
+                        //console.log("Error:", data.error_log);
                         $('#result').text('Error: ' + data.error_log);
                     }
                 }).fail(function (xhr) {
-                    console.log("AJAX request failed:", xhr.responseText);
+                //console.log("AJAX request failed:", xhr.responseText);
                     $('#result').text('Error: ' + xhr.responseText);
                 });
             });
